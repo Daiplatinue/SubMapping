@@ -1,4 +1,6 @@
-import { useState } from "react"
+"use client"
+
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -7,6 +9,7 @@ import axios from "axios"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
 
@@ -175,7 +178,35 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     contact: "",
     password: "",
     confirmPassword: "",
+    block: "",
+    houseId: "",
   })
+
+  const blocks = ["a", "b", "c", "d"]
+  const [houseIdOptions, setHouseIdOptions] = useState<string[]>([])
+
+  // Update houseId options when block changes
+  const updateHouseIdOptions = (selectedBlock: string) => {
+    if (!selectedBlock) {
+      setHouseIdOptions([])
+      return
+    }
+
+    const blockUpper = selectedBlock.toUpperCase()
+    const options = Array.from({ length: 10 }, (_, i) => `${blockUpper}${i + 1}`)
+    setHouseIdOptions(options)
+
+    // Reset houseId when block changes
+    setValues((prev) => ({ ...prev, houseId: "" }))
+  }
+
+  // Effect to update houseId options when block changes
+  useEffect(() => {
+    if (values.block) {
+      updateHouseIdOptions(values.block)
+    }
+  }, [values.block])
+
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState("")
@@ -193,6 +224,11 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
       return
     }
 
+    if (values.block && !values.houseId) {
+      setError("Please select a House ID")
+      return
+    }
+
     setLoading(true)
     try {
       // Updated endpoint from /register to /postadminCreateUser
@@ -202,6 +238,9 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
         email: values.email.trim(),
         contact: values.contact.trim(),
         password: values.password,
+        type: "customer", // Setting default type as customer for self-registration
+        block: values.block || undefined,
+        houseId: values.houseId || undefined,
       })
 
       if (response.data) {
@@ -293,6 +332,55 @@ function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
             value={values.contact}
             required
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="block" className="text-sm font-medium">
+              Block
+            </label>
+            <Select
+              value={values.block}
+              onValueChange={(value) => {
+                handleChanges({ target: { name: "block", value } })
+              }}
+            >
+              <SelectTrigger className="h-12">
+                <SelectValue placeholder="Select Block" />
+              </SelectTrigger>
+              <SelectContent>
+                {blocks.map((block) => (
+                  <SelectItem key={block} value={block}>
+                    Block {block.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="houseId" className="text-sm font-medium">
+              House ID
+            </label>
+            <Select
+              value={values.houseId}
+              onValueChange={(value) => {
+                handleChanges({ target: { name: "houseId", value } })
+              }}
+              disabled={!values.block}
+            >
+              <SelectTrigger className="h-12">
+                <SelectValue placeholder="Select House ID" />
+              </SelectTrigger>
+              <SelectContent>
+                {houseIdOptions.map((houseId) => (
+                  <SelectItem key={houseId} value={houseId}>
+                    {houseId}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div>

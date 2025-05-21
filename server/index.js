@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
-dotenv.config({ path: "../.env" });
+import dotenv from "dotenv"
+dotenv.config({ path: "../.env" })
 
 import express from "express"
 import cors from "cors"
@@ -17,30 +17,30 @@ import {
   getUserById,
   updateUser,
   deleteUser,
+  getUsersByBlockAndHouseId,
 } from "./controller/adminCreateUserController.js"
 import { postNotification, getAllNotifications } from "./controller/notificationController.js"
 
-console.log("MONGO_URL:", process.env.MONGO_URL);
+console.log("MONGO_URL:", process.env.MONGO_URL)
 
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log("MongoDB Connection Failed", err))
 
-
 const app = express()
 app.use(
   cors({
-    origin: "*", 
-    methods: ["GET", "POST", "PUT", "DELETE"], 
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 )
 app.use(express.json())
 
 // Authentication Routes - Updated
-app.post("/postadminCreateUser", customerCreateUser) 
-app.post("/login", adminLoginUser) 
+app.post("/postadminCreateUser", customerCreateUser)
+app.post("/login", adminLoginUser)
 
 // Household Owner Routes
 app.post("/postEmergency", postEmergency)
@@ -62,6 +62,9 @@ app.get("/users", getAllUsers)
 app.get("/users/:id", getUserById)
 app.put("/users/:id", updateUser)
 app.delete("/users/:id", deleteUser)
+// Add a new route for getting users by block and houseId
+// Add this after the other user routes (around line 50)
+app.get("/users/block/:block/house/:houseId", getUsersByBlockAndHouseId)
 app.get("/payments", getAllPayments)
 app.get("/reports", getAllReports)
 app.post("/postNotification", postNotification)

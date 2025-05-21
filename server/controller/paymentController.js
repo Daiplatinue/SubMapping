@@ -4,25 +4,35 @@ import { User } from "../models/user.js"
 // Function to post a new payment
 const postPayment = async (req, res) => {
   try {
-    const { userId, amount, paymentMethod, paymentDate } = req.body
+    const {
+      userId,
+      houseId,
+      paymentType,
+      amount,
+      processingFee,
+      totalAmount,
+      cardDetails,
+      transactionId,
+      paymentDate,
+    } = req.body
 
     // Validate required fields
-    if (!userId || !amount || !paymentMethod || !paymentDate) {
-      return res.status(400).json({ message: "All fields are required" })
-    }
-
-    // Check if the user exists
-    const user = await User.findById(userId)
-    if (!user) {
-      return res.status(404).json({ message: "User not found" })
+    if (!userId || !amount || !paymentType || !paymentDate) {
+      return res.status(400).json({ message: "Required fields are missing" })
     }
 
     // Create a new payment
     const newPayment = new Payment({
       userId,
+      houseId,
+      paymentType,
       amount,
-      paymentMethod,
+      processingFee,
+      totalAmount,
+      cardDetails,
+      transactionId,
       paymentDate,
+      status: "recieved",
     })
 
     // Save the payment to the database
@@ -31,7 +41,7 @@ const postPayment = async (req, res) => {
     return res.status(201).json({ message: "Payment created successfully", payment: newPayment })
   } catch (error) {
     console.error("Error creating payment:", error)
-    return res.status(500).json({ message: "Server error while creating payment" })
+    return res.status(500).json({ message: "Server error while creating payment", error: error.message })
   }
 }
 

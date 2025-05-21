@@ -1,3 +1,5 @@
+"use client"
+
 import type React from "react"
 import { useState, useEffect } from "react"
 import {
@@ -590,10 +592,15 @@ function HouseholdOwner() {
   const [fetchingRequests, setFetchingRequests] = useState(false)
   const [fetchingReports, setFetchingReports] = useState(false)
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}")
-  const userId = user._id || "Not available"
-  const userFirstname = user.firstname || "Not available"
-  const userLastname = user.lastname || "Not available"
+  const userData = JSON.parse(localStorage.getItem("admincreateusers") || "{}")
+  const userId = userData.user?.id || userData._id || "Not available"
+  const userFirstname = userData.user?.firstname || userData.firstname || "Not available"
+  const userLastname = userData.user?.lastname || userData.lastname || "Not available"
+  const userBlock = userData.user?.block || userData.block || "Not available"
+  const userHouseid = userData.user?.houseId || userData.houseId || "Not available"
+
+  console.log("User ID:", userId)
+  console.log("User data:", userData)
 
   const [values, setValues] = useState({
     type: "",
@@ -660,6 +667,83 @@ function HouseholdOwner() {
       fetchPaymentHistory()
     }
   }, [activeTab, userId])
+
+  // Fetch occupants when component mounts or when activeTab changes to "house"
+  useEffect(() => {
+    if (activeTab === "house" && userBlock && userHouseid) {
+      fetchOccupants()
+    }
+  }, [activeTab, userBlock, userHouseid])
+
+  // Function to fetch occupants with the same block and houseId
+  const fetchOccupants = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users`)
+      if (response.data) {
+        // Filter users with the same block and houseId
+        interface Occupant {
+          firstname: string
+          lastname: string
+          type: string
+          block: string
+          houseId: string
+          [key: string]: any // For any additional properties
+        }
+        const occupants: Occupant[] = (response.data as Occupant[]).filter(
+          (user: Occupant) => user.block === userBlock && user.houseId === userHouseid
+        )
+
+        // Update occupants count
+        const occupantsCountElement = document.getElementById("occupants-count")
+        if (occupantsCountElement) {
+          occupantsCountElement.textContent = occupants.length.toString()
+        }
+
+        // Update occupants list
+        const occupantsListElement = document.getElementById("occupants-list")
+        if (occupantsListElement) {
+          if (occupants.length > 0) {
+            occupantsListElement.innerHTML = occupants
+              .map(
+                (occupant) => `
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" class="text-primary">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+                <div>
+                  <p class="font-medium">${occupant.lastname}, ${occupant.firstname}</p>
+                  <p class="text-xs text-muted-foreground">${occupant.type}</p>
+                </div>
+              </div>
+            `,
+              )
+              .join("")
+          } else {
+            occupantsListElement.innerHTML = `
+              <div class="text-center text-muted-foreground p-4">
+                No other occupants found for this residence.
+              </div>
+            `
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching occupants:", error)
+
+      // Update with error message
+      const occupantsListElement = document.getElementById("occupants-list")
+      if (occupantsListElement) {
+        occupantsListElement.innerHTML = `
+          <div class="text-center text-red-500 p-4">
+            Error loading occupants. Please try again later.
+          </div>
+        `
+      }
+    }
+  }
 
   // Function to fetch user requests from the API
   const fetchUserRequests = async () => {
@@ -1396,11 +1480,11 @@ function HouseholdOwner() {
                           <div className="grid grid-cols-2 gap-4 mt-4">
                             <div className="flex flex-col">
                               <span className="text-sm text-muted-foreground">Block</span>
-                              <span className="font-medium">{householdData.blockNumber}</span>
+                              <span className="font-medium">{userBlock}</span>
                             </div>
                             <div className="flex flex-col">
                               <span className="text-sm text-muted-foreground">House ID</span>
-                              <span className="font-medium">{householdData.id}</span>
+                              <span className="font-medium">{userHouseid}</span>
                             </div>
                             <div className="flex flex-col">
                               <span className="text-sm text-muted-foreground">Year Built</span>
@@ -1408,7 +1492,9 @@ function HouseholdOwner() {
                             </div>
                             <div className="flex flex-col">
                               <span className="text-sm text-muted-foreground">Occupants</span>
-                              <span className="font-medium">{householdData.occupants}</span>
+                              <span className="font-medium" id="occupants-count">
+                                Loading...
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1450,81 +1536,19 @@ function HouseholdOwner() {
                     </CardContent>
                   </Card>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Occupants</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                              <Users className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium">
-                                {userFirstname}, {userLastname}
-                              </p>
-                              <p className="text-xs text-muted-foreground">Primary Resident</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                              <Users className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium">
-                                {userFirstname}, {userLastname}
-                              </p>
-                              <p className="text-xs text-muted-foreground">Members</p>
-                            </div>
-                          </div>
+                  <Card className="mt-4">
+                    <CardHeader>
+                      <CardTitle>Residence Occupants</CardTitle>
+                      <CardDescription>People living in this residence</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4" id="occupants-list">
+                        <div className="flex items-center justify-center p-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Payment Information</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <Droplet className="h-4 w-4 text-blue-500" />
-                              <span>Water Bill</span>
-                            </div>
-                            <Badge variant="outline" className="bg-green-50">
-                              Paid
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <Zap className="h-4 w-4 text-yellow-500" />
-                              <span>Electricity Bill</span>
-                            </div>
-                            <Badge variant="outline" className="bg-green-50">
-                              Paid
-                            </Badge>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                              <Home className="h-4 w-4 text-primary" />
-                              <span>Association Dues</span>
-                            </div>
-                            <Badge variant="outline" className="bg-yellow-50">
-                              Due in 5 days
-                            </Badge>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            <Button variant="outline">View History</Button>
-                            <OnlinePaymentDialog setActiveTab={setActiveTab} userId={userId} />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 {/* Emergency Request Tab */}
@@ -1986,10 +2010,6 @@ function HouseholdOwner() {
                           </svg>
                         )}
                         <span>Refresh</span>
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <FileText className="h-4 w-4" />
-                        Download All Receipts
                       </Button>
                     </div>
                   </div>

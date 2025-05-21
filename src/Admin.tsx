@@ -1818,10 +1818,6 @@ function AdminDashboard() {
                     </Select>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button className="gap-2">
-                          <Plus className="h-4 w-4" />
-                          Add Incident
-                        </Button>
                       </DialogTrigger>
                       {/* Now update the incident dialog form in the incidents tab
                         // Find the Dialog content for adding an incident (around line 1200) and replace it with: */}
@@ -2178,7 +2174,6 @@ function AdminDashboard() {
                                       </div>
                                     </div>
                                     <DialogFooter>
-                                      <Button variant="outline">Assign Staff</Button>
                                       <Button>Update Status</Button>
                                     </DialogFooter>
                                   </DialogContent>

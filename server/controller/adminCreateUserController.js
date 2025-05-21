@@ -45,16 +45,7 @@ const postadminCreateUser = async (req, res) => {
       userData.password = password
     }
 
-    // Randomize block and houseId if not provided and user is not a guard
-    if (type !== "guard" && (!block || !houseId)) {
-      // Define available blocks
-      const blocks = ["A", "B", "C", "D"]
-      // Randomly select a block
-      userData.block = block || blocks[Math.floor(Math.random() * blocks.length)]
-      // Generate a random house number between 1 and 20
-      userData.houseId = houseId || `${userData.block}${Math.floor(Math.random() * 20) + 1}`
-    }
-
+    // Add block and houseId if user is not a guard
     if (type !== "guard") {
       userData.block = block
       userData.houseId = houseId
@@ -71,7 +62,7 @@ const postadminCreateUser = async (req, res) => {
 
 const customerCreateUser = async (req, res) => {
   try {
-    const { firstname, lastname, email, contact, password } = req.body
+    const { firstname, lastname, email, contact, password, block, houseId } = req.body
 
     if (!firstname || !lastname || !email || !contact || !password) {
       return res.status(400).json({ message: "Please fill all required fields" })
@@ -91,8 +82,8 @@ const customerCreateUser = async (req, res) => {
       type: "customer",
       status: "Pending",
       createdBy: "self",
-      block: "Pending",
-      houseId: "Pending",
+      block: block || "Pending",
+      houseId: houseId || "Pending",
     })
 
     return res.status(201).json({
@@ -257,4 +248,31 @@ const deleteUser = async (req, res) => {
   }
 }
 
-export { postadminCreateUser, customerCreateUser, loginUser, getAllUsers, getUserById, updateUser, deleteUser }
+// Add a new function to get users by block and houseId
+const getUsersByBlockAndHouseId = async (req, res) => {
+  try {
+    const { block, houseId } = req.params
+
+    if (!block || !houseId) {
+      return res.status(400).json({ message: "Block and House ID are required" })
+    }
+
+    const users = await adminCreateUser.find({ block, houseId })
+    return res.status(200).json(users)
+  } catch (error) {
+    console.error("Error fetching users by block and houseId:", error)
+    return res.status(500).json({ message: "Server error while fetching users" })
+  }
+}
+
+// Add the new function to the exports at the end of the file
+export {
+  postadminCreateUser,
+  customerCreateUser,
+  loginUser,
+  getAllUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+  getUsersByBlockAndHouseId,
+}
